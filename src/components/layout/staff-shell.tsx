@@ -3,8 +3,9 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Handshake, History, Home, LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
+import { Handshake, History, Home, LayoutDashboard, LogOut, Menu, Search, Users, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
+import { CommandPalette } from "@/components/layout/command-palette";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -26,6 +27,7 @@ export function StaffShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
+  const [searchOpen, setSearchOpen] = React.useState(false);
 
   const nav = (
     <>
@@ -33,6 +35,19 @@ export function StaffShell({
         <Link href="/" aria-label="V-PRO dashboard">
           <Logo className="text-2xl" />
         </Link>
+      </div>
+      <div className="px-3 pt-3">
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(false);
+            setSearchOpen(true);
+          }}
+          className="flex w-full items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-brand-light/40"
+        >
+          <Search className="size-4" /> Search…
+          <kbd className="ml-auto hidden rounded border bg-muted px-1.5 text-[11px] font-medium lg:inline">Ctrl / ⌘ K</kbd>
+        </button>
       </div>
       <nav className="flex-1 space-y-1 p-3" aria-label="Main">
         {NAV.map(({ href, label, icon: Icon }) => {
@@ -108,6 +123,7 @@ export function StaffShell({
       )}
 
       <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

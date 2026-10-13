@@ -219,6 +219,23 @@ export function DealsTrendChart({ trends, initialBy, periodLabel }: { trends: Re
     oldN: sum(prev.counts, elapsed),
   };
 
+  // Plain-text version of the chart for screen readers (the chart itself is a picture).
+  const summary = React.useMemo(() => {
+    const totalValue = trend.series.reduce((a, s) => a + s.total, 0);
+    const totalCount = trend.series.reduce((a, s) => a + s.counts.reduce((x, y) => x + y, 0), 0);
+    const perBucket = trend.buckets.map((_, i) => trend.series.reduce((a, s) => a + s.values[i], 0));
+    const peak = perBucket.reduce((best, v, i) => (v > perBucket[best] ? i : best), 0);
+    let text = `Deal trend, ${periodLabel}: ${formatIDR(totalValue)} from ${plural(totalCount)}.`;
+    if (perBucket[peak] > 0) text += ` Highest ${days ? "day" : "month"}: ${longLabel(trend.buckets[peak], trend.granularity)}, ${formatIDR(perBucket[peak])}.`;
+    const cur = prev ? sum(thisMonth.values, elapsed) : 0;
+    const old = prev ? sum(prev.values, elapsed) : 0;
+    if (prev && old > 0) {
+      const change = Math.round(((cur - old) / old) * 100);
+      text += ` Compared with the same ${days ? "days last month" : "months last year"} (${formatIDR(old)}): ${change === 0 ? "no change" : `${Math.abs(change)}% ${change > 0 ? "higher" : "lower"}`}.`;
+    }
+    return text;
+  }, [trend, periodLabel, days, prev, thisMonth, elapsed]);
+
   React.useEffect(() => {
     if (!picked) return;
     let dead = false;
@@ -492,7 +509,9 @@ export function DealsTrendChart({ trends, initialBy, periodLabel }: { trends: Re
               className={cn("h-[380px] w-full", clickable && "[&_.nsewdrag]:cursor-pointer!")}
               role="img"
               aria-label={`${prev && view === "daily" ? "Bar" : "Line"} chart of deal value per ${trend.granularity}`}
+              aria-describedby="trend-summary"
             />
+            <p id="trend-summary" className="sr-only">{summary}</p>
             {hover !== null && hover < n && (
               <ChartTooltip idx={hover} trend={trend} data={compared} view={view} elapsed={elapsed} versus={versus} tipRef={tip} />
             )}
