@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { getDealsOnDay, type DayDeal } from "@/app/(staff)/deals/actions";
 import { TypeBadge } from "@/components/common/badges";
@@ -143,11 +143,21 @@ function TipRow({ label, color, value, n, dot }: { label: string; color: string;
   );
 }
 
-export function DealsTrendChart({ trend, by, periodLabel }: { trend: DealTrend; by: TrendBy; periodLabel: string }) {
-  const router = useRouter();
+const parseBy = (v: string | null): TrendBy => (v === "payment" || v === "sales" ? v : "total");
+
+/** `trends` holds all three splits, so switching between them is a local state change (no server round trip). */
+export function DealsTrendChart({ trends, initialBy, periodLabel }: { trends: Record<TrendBy, DealTrend>; initialBy: TrendBy; periodLabel: string }) {
   const pathname = usePathname();
   const params = useSearchParams();
-  const [pending, start] = React.useTransition();
+  const urlBy = parseBy(params.get("by"));
+  const [by, setByState] = React.useState<TrendBy>(initialBy);
+  // Follow the URL when it changes from outside (back / forward), not only our own clicks.
+  const [seenUrlBy, setSeenUrlBy] = React.useState(urlBy);
+  if (seenUrlBy !== urlBy) {
+    setSeenUrlBy(urlBy);
+    setByState(urlBy);
+  }
+  const trend = trends[by];
   const el = React.useRef<HTMLDivElement>(null);
   const [view, setView] = React.useState<View>("all");
   // The picked day is tied to the trend it was picked on, so changing the period or split clears it.
@@ -160,7 +170,10 @@ export function DealsTrendChart({ trend, by, periodLabel }: { trend: DealTrend; 
     if (v === "total") next.delete("by");
     else next.set("by", v);
     const qs = next.toString();
-    start(() => router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
+    setByState(v);
+    setSeenUrlBy(v); // the URL is about to say the same thing; don't treat it as an outside change
+    // Keeps the split in the address bar (refresh / share) without asking the server for a new page.
+    window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
   };
 
   const days = trend.granularity === "day";
@@ -409,7 +422,7 @@ export function DealsTrendChart({ trend, by, periodLabel }: { trend: DealTrend; 
   const dayRows = picked && dayDeals?.day === picked ? dayDeals.rows : null;
 
   return (
-    <div className={cn("rounded-xl border bg-card p-4 shadow-sm transition-opacity sm:p-5", pending && "opacity-70")}>
+    <div className={cn("rounded-xl border bg-card p-4 shadow-sm sm:p-5")}>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-semibold">Deal trend</h2>

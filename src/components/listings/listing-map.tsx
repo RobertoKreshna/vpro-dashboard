@@ -369,6 +369,18 @@ export default function ListingMap({
           const r = padded(box);
           geo = { lonaxis: { range: r.lon }, lataxis: { range: r.lat } };
         }
+      } else if (view.level === "province") {
+        // Centre on the province's main body and ignore far-off islands, but never hide a city that has listings.
+        const boxes = [mainBox(view.features), ...view.features.filter((f) => view.entries.has(fp(f).uid!)).map((f) => mainBox([f]))].filter(
+          (x): x is [number, number, number, number] => !!x,
+        );
+        if (boxes.length) {
+          const r = padded(
+            [Math.min(...boxes.map((x) => x[0])), Math.min(...boxes.map((x) => x[1])), Math.max(...boxes.map((x) => x[2])), Math.max(...boxes.map((x) => x[3]))],
+            0.6,
+          );
+          geo = { lonaxis: { range: r.lon }, lataxis: { range: r.lat } };
+        }
       } else if (view.level === "city" || view.level === "district") {
         const box = mainBox(view.features);
         if (box) {

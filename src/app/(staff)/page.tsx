@@ -222,8 +222,11 @@ async function TrendSection({
   by: TrendBy;
   periodLabel: string;
 }) {
-  const trend = await cachedTrend({ period, year, month, by });
-  return <DealsTrendChart trend={trend} by={by} periodLabel={periodLabel} />;
+  // All three splits are fetched together (each is cached for a minute) so the chart's switch is instant.
+  const [total, payment, sales] = await Promise.all(
+    (["total", "payment", "sales"] as const).map((b) => cachedTrend({ period, year, month, by: b })),
+  );
+  return <DealsTrendChart trends={{ total, payment, sales }} initialBy={by} periodLabel={periodLabel} />;
 }
 
 async function TopSales({ range, periodLabel }: { range: { gte?: string; lt?: string }; periodLabel: string }) {
