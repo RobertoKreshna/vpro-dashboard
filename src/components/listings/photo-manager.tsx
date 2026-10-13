@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { PHOTO_BUCKET, photoUrl } from "@/lib/constants";
+import { resizeImage } from "@/lib/resize-image";
 import { cn } from "@/lib/utils";
 import {
   deletePhoto,
@@ -34,6 +35,8 @@ import {
 
 type Photo = { id: string; path: string; isCover: boolean };
 const MAX_BYTES = 10 * 1024 * 1024;
+/** Originals up to this size are accepted because they are shrunk before upload; the shrunk file must still fit MAX_BYTES. */
+const MAX_ORIGINAL_BYTES = 40 * 1024 * 1024;
 
 export function PhotoManager({ listingId, initial }: { listingId: string; initial: Photo[] }) {
   const [photos, setPhotos] = React.useState(initial);
@@ -61,8 +64,8 @@ export function PhotoManager({ listingId, initial }: { listingId: string; initia
         toast.error(`${f.name} is not an image`);
         return false;
       }
-      if (f.size > MAX_BYTES) {
-        toast.error(`${f.name} is larger than 10 MB`);
+      if (f.size > MAX_ORIGINAL_BYTES) {
+        toast.error(`${f.name} is larger than 40 MB`);
         return false;
       }
       return true;
@@ -72,14 +75,19 @@ export function PhotoManager({ listingId, initial }: { listingId: string; initia
     try {
       const supabase = createClient();
       const paths: string[] = [];
-      for (const f of list) {
+      for (const original of list) {
+        const f = await resizeImage(original);
+        if (f.size > MAX_BYTES) {
+          toast.error(`${original.name} is larger than 10 MB`);
+          continue;
+        }
         const ext = (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
         const path = `${listingId}/${crypto.randomUUID()}.${ext}`;
         const { error } = await supabase.storage.from(PHOTO_BUCKET).upload(path, f, {
           contentType: f.type,
           cacheControl: "31536000",
         });
-        if (error) toast.error(`${f.name}: ${error.message}`);
+        if (error) toast.error(`${original.name}: ${error.message}`);
         else paths.push(path);
       }
       if (paths.length) {

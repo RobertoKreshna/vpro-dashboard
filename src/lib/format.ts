@@ -1,9 +1,10 @@
 const idr = new Intl.NumberFormat("id-ID");
+const idrExact = new Intl.NumberFormat("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-/** 1500000 -> "Rp 1.500.000" */
+/** 1500000 -> "Rp. 1.500.000,00" (Indonesian separators: dot for thousands, comma for decimals) */
 export function formatIDR(n: number | null | undefined): string {
   if (n === null || n === undefined || Number.isNaN(n)) return "-";
-  return `Rp ${idr.format(Math.round(n))}`;
+  return `Rp. ${idrExact.format(n)}`;
 }
 
 const idShort = new Intl.NumberFormat("id-ID", { maximumFractionDigits: 1 });

@@ -14,6 +14,7 @@ import { PeriodFilter } from "@/components/dashboard/period-filter";
 import { dealYears, parsePeriod, type Period } from "@/lib/period";
 import { ListingMap } from "@/components/listings/listing-map-loader";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SectionError } from "@/components/common/section-error";
 import { LazyMount } from "@/components/common/lazy-mount";
 import { getMapCounts, getMapPoints, parseListingFilters } from "@/lib/listing-queries";
 import { compactIDR, formatIDR } from "@/lib/format";
@@ -106,9 +107,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <PageHeader title="Dashboard" description={`Overview for ${monthName}`} />
-      <Suspense fallback={<StatsSkeleton />}>
-        <Stats monthName={monthName} />
-      </Suspense>
+      <SectionError title="Overview">
+        <Suspense fallback={<StatsSkeleton />}>
+          <Stats monthName={monthName} />
+        </Suspense>
+      </SectionError>
 
       <div className="mt-6 rounded-xl border bg-card p-4 shadow-sm sm:p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -117,9 +120,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
         <div className="lg:h-[560px]">
           <LazyMount fallback={<Skeleton className="h-[380px] sm:h-[480px] lg:h-full" />}>
-            <Suspense fallback={<Skeleton className="h-[380px] sm:h-[480px] lg:h-full" />}>
-              <MapSection filters={mapFilters} />
-            </Suspense>
+            <SectionError title="Listings map">
+              <Suspense fallback={<Skeleton className="h-[380px] sm:h-[480px] lg:h-full" />}>
+                <MapSection filters={mapFilters} />
+              </Suspense>
+            </SectionError>
           </LazyMount>
         </div>
         {where && (
@@ -136,24 +141,32 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <h2 className="text-lg font-semibold">Deals</h2>
           <p className="text-sm text-muted-foreground">{periodLabel}</p>
         </div>
-        <Suspense fallback={<Skeleton className="h-10 w-72" />}>
-          <PeriodPicker period={period} month={pMonth} year={pYear} label={periodLabel} />
-        </Suspense>
+        <SectionError title="Period picker">
+          <Suspense fallback={<Skeleton className="h-10 w-72" />}>
+            <PeriodPicker period={period} month={pMonth} year={pYear} label={periodLabel} />
+          </Suspense>
+        </SectionError>
       </div>
 
       <div className="mt-4">
-        <Suspense fallback={<Skeleton className="h-[480px] rounded-xl" />}>
-          <TrendSection period={period} year={pYear} month={pMonth} by={by} periodLabel={periodLabel} />
-        </Suspense>
+        <SectionError title="Deal trend">
+          <Suspense fallback={<Skeleton className="h-[480px] rounded-xl" />}>
+            <TrendSection period={period} year={pYear} month={pMonth} by={by} periodLabel={periodLabel} />
+          </Suspense>
+        </SectionError>
       </div>
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-2">
-        <Suspense fallback={<Skeleton className="h-64 rounded-xl" />}>
-          <DealMixCard range={range} periodLabel={periodLabel} />
-        </Suspense>
-        <Suspense fallback={<Skeleton className="h-64 rounded-xl" />}>
-          <TopSales range={range} periodLabel={periodLabel} />
-        </Suspense>
+        <SectionError title="Deal distribution">
+          <Suspense fallback={<Skeleton className="h-64 rounded-xl" />}>
+            <DealMixCard range={range} periodLabel={periodLabel} />
+          </Suspense>
+        </SectionError>
+        <SectionError title="Top sales codes">
+          <Suspense fallback={<Skeleton className="h-64 rounded-xl" />}>
+            <TopSales range={range} periodLabel={periodLabel} />
+          </Suspense>
+        </SectionError>
       </div>
     </>
   );

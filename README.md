@@ -21,7 +21,7 @@ Staff work in a login-protected admin area; one page, the **public Listing Dashb
 - **Activity** — a log of who created, changed (with the fields that changed) or deleted listings, deals and sales codes, filterable by type. Recorded by the server actions in `src/lib/activity.ts`; only changes made after the log was added appear.
 - **Sales** (sales codes) — agents CRUD, active/inactive, deletion blocked while listings or deals still use the code.
 
-Rupiah formatting (`Rp 1.500.000.000`) and `dd/mm/yyyy` dates throughout.
+Rupiah formatting (`Rp. 1.500.000.000,00`) and `dd/mm/yyyy` dates throughout.
 
 ## Tech stack
 
