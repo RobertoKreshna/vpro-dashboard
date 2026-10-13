@@ -11,7 +11,7 @@ import { getDealMix } from "@/lib/deal-mix";
 import { getDealTrend, type TrendBy } from "@/lib/deal-trend";
 import { seriesColor } from "@/lib/trend-helpers";
 import { PeriodFilter } from "@/components/dashboard/period-filter";
-import { dealYears, parsePeriod, type Period } from "@/lib/period";
+import { dealsHref, dealYears, parsePeriod, type Period } from "@/lib/period";
 import { ListingMap } from "@/components/listings/listing-map-loader";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SectionError } from "@/components/common/section-error";
@@ -43,7 +43,8 @@ function Stat({
         <span className="rounded-lg bg-brand-light/60 p-1.5 text-brand-ink"><Icon className="size-4" /></span>
         {label}
       </div>
-      <div className="whitespace-nowrap text-2xl font-bold tracking-tight xl:text-3xl">{value}</div>
+      {/* Full rupiah amounts ("Rp. 7.965.000.000,00") are ~20 characters: text-xl fits a phone and the 3-column layout. */}
+      <div className="whitespace-nowrap text-xl font-bold tracking-tight 2xl:text-2xl">{value}</div>
       {hint && <p className="mt-2 text-sm text-muted-foreground">{hint}</p>}
     </div>
   );
@@ -250,7 +251,9 @@ async function TopSales({ range, periodLabel }: { range: { gte?: string; lt?: st
           {top.map((t, i) => (
             <li key={t.code}>
               <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                <span className="font-medium">{i + 1}. {t.code} <span className="font-normal text-muted-foreground">· {t.name}</span></span>
+                <Link href={dealsHref(range, { salesCode: t.code })} className="font-medium hover:underline">
+                  {i + 1}. {t.code} <span className="font-normal text-muted-foreground">· {t.name}</span>
+                </Link>
                 <span className="tabular-nums">{t.n} deal{t.n > 1 ? "s" : ""} · {formatIDR(t.value)}</span>
               </div>
               <div className="h-2.5 overflow-hidden rounded-full bg-brand-light/50" role="presentation">
@@ -293,7 +296,9 @@ async function DealMixCard({ range, periodLabel }: { range: { gte?: string; lt?:
                 { row: rent, dot: "bg-sky-400" },
               ].map(({ row, dot }) => (
                 <div key={row.name} className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2"><span className={`size-2.5 rounded-full ${dot}`} aria-hidden />{row.name} · {pct(row.value, mix.total)}%</span>
+                  <Link href={dealsHref(range, { type: row.name.toLowerCase() })} className="flex items-center gap-2 hover:underline">
+                    <span className={`size-2.5 rounded-full ${dot}`} aria-hidden />{row.name} · {pct(row.value, mix.total)}%
+                  </Link>
                   <span className="tabular-nums text-muted-foreground">{row.n} deal{row.n === 1 ? "" : "s"} · {compactIDR(row.value)}</span>
                 </div>
               ))}
@@ -305,10 +310,21 @@ async function DealMixCard({ range, periodLabel }: { range: { gte?: string; lt?:
               {payments.map((p) => (
                 <li key={p.name}>
                   <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
-                    <span className="flex items-center gap-2">
-                      <span className="size-2.5 rounded-full" style={{ background: seriesColor(p.name) }} aria-hidden />
-                      {p.name} · {pct(p.value, mix.total)}%
-                    </span>
+                    {(() => {
+                      // Cash and each bank can be filtered on the deals list; "Not recorded" / "Bank (unspecified)" can't.
+                      const extra: Record<string, string> | null = p.name === "Cash" ? { payment: "cash" } : p.name === "Not recorded" || p.name === "Bank (unspecified)" ? null : { payment: "bank", bank: p.name };
+                      const label = (
+                        <>
+                          <span className="size-2.5 rounded-full" style={{ background: seriesColor(p.name) }} aria-hidden />
+                          {p.name} · {pct(p.value, mix.total)}%
+                        </>
+                      );
+                      return extra ? (
+                        <Link href={dealsHref(range, extra)} className="flex items-center gap-2 hover:underline">{label}</Link>
+                      ) : (
+                        <span className="flex items-center gap-2">{label}</span>
+                      );
+                    })()}
                     <span className="tabular-nums text-muted-foreground">{p.n} deal{p.n === 1 ? "" : "s"} · {compactIDR(p.value)}</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted" role="presentation">

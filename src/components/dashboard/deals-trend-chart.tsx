@@ -529,6 +529,22 @@ export function DealsTrendChart({ trends, initialBy, periodLabel }: { trends: Re
           ) : dayRows.length === 0 ? (
             <p className="px-4 py-6 text-center text-sm text-muted-foreground">No deals on this day.</p>
           ) : (
+            <>
+            {/* Phones: one card per deal (a 7-column table is too cramped). */}
+            <ul className="divide-y sm:hidden">
+              {dayRows.map((r) => (
+                <li key={r.id} className="space-y-1 px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-2 font-medium">{r.id} <TypeBadge type={r.dealType} /></span>
+                    <span className="font-semibold tabular-nums">{formatIDR(r.finalPrice)}</span>
+                  </div>
+                  <p>{r.buyerName}</p>
+                  <p className="truncate text-xs text-muted-foreground">{r.address}, {r.city}</p>
+                  <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs"><Dot name={r.payment} /><Dot name={r.sales} /></p>
+                </li>
+              ))}
+            </ul>
+            <div className="hidden sm:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -555,6 +571,8 @@ export function DealsTrendChart({ trends, initialBy, periodLabel }: { trends: Re
                 ))}
               </TableBody>
             </Table>
+            </div>
+            </>
           )}
         </div>
       )}

@@ -28,6 +28,18 @@ export function parsePeriod(sp: SP) {
   return { period, year, month, range, label };
 }
 
+/** Link to the Done Deals list for a period (plus extra filters). The list's `to` is inclusive, our range's `lt` is not. */
+export function dealsHref(range: { gte?: string; lt?: string }, extra: Record<string, string> = {}) {
+  const q = new URLSearchParams(extra);
+  if (range.gte) q.set("from", range.gte);
+  if (range.lt) {
+    const [y, m, d] = range.lt.split("-").map(Number);
+    q.set("to", new Date(Date.UTC(y, m - 1, d - 1)).toISOString().slice(0, 10));
+  }
+  const qs = q.toString();
+  return qs ? `/deals?${qs}` : "/deals";
+}
+
 /** Years to offer in the period picker: from the first deal to now, plus the selected one. */
 export async function dealYears(selected: number) {
   const [{ firstDeal }] = await db.select({ firstDeal: min(deals.dealDate) }).from(deals);
