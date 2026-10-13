@@ -17,9 +17,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LazyMount } from "@/components/common/lazy-mount";
 import { getMapCounts, getMapPoints, parseListingFilters } from "@/lib/listing-queries";
 import { compactIDR, formatIDR } from "@/lib/format";
+import { today } from "@/lib/tz";
 
 export const metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
+
+/** The overview map opens on this province; picking "Indonesia" in the map overrides it (`province=` in the URL). */
+const DEFAULT_PROVINCE = "Sulawesi Selatan";
 
 function Stat({
   icon: Icon,
@@ -88,7 +92,7 @@ const getTopSales = dashCache(async (gteDate?: string, ltDate?: string) => {
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   // The staff overview map covers every active listing (available + reserved) unless a status is chosen.
-  const mapFilters = parseListingFilters({ ...sp, status: sp.status ?? "active" });
+  const mapFilters = parseListingFilters({ ...sp, status: sp.status ?? "active", province: sp.province ?? DEFAULT_PROVINCE });
   const { period, year: pYear, month: pMonth, range, label: periodLabel } = parsePeriod(sp);
   const by = (["total", "payment", "sales"].includes(one(sp.by)) ? one(sp.by) : "total") as TrendBy;
 
@@ -96,7 +100,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const listingsQs = new URLSearchParams({ status: "all" });
   for (const k of ["province", "city", "district", "village"] as const) if (mapFilters[k]) listingsQs.set(k, mapFilters[k]);
 
-  const monthName = new Date().toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+  const now = today();
+  const monthName = new Date(now.year, now.month - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 
   return (
     <>
@@ -165,12 +170,10 @@ function StatsSkeleton() {
 }
 
 async function Stats({ monthName }: { monthName: string }) {
-  const now = new Date();
-  const first = new Date(now.getFullYear(), now.getMonth(), 1);
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
+  const { year, month: m } = today();
+  const iso = (y: number, mo: number) => `${mo > 12 ? y + 1 : y}-${String(mo > 12 ? 1 : mo).padStart(2, "0")}-01`;
 
-  const { byType, month } = await getStats(iso(first), iso(next));
+  const { byType, month } = await getStats(iso(year, m), iso(year, m + 1));
   const sell = byType.find((r) => r.type === "sell")?.n ?? 0;
   const rent = byType.find((r) => r.type === "rent")?.n ?? 0;
 
@@ -185,7 +188,7 @@ async function Stats({ monthName }: { monthName: string }) {
 
 async function MapSection({ filters }: { filters: Parameters<typeof getMapCounts>[0] }) {
   const [counts, points] = await Promise.all([cachedMapCounts(filters), cachedMapPoints(filters)]);
-  return <ListingMap counts={counts} points={points} listingBase="/listings" />;
+  return <ListingMap counts={counts} points={points} listingBase="/listings" defaultProvince={DEFAULT_PROVINCE} />;
 }
 
 async function PeriodPicker({ period, month, year, label }: { period: Period; month: number; year: number; label: string }) {

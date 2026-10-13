@@ -100,11 +100,14 @@ export default function ListingMap({
   counts: countsProp,
   points: pointsProp,
   listingBase = "/listings-public",
+  defaultProvince,
 }: {
   counts: MapCounts;
   points: MapPoint[];
   /** Where a clicked dot goes: `${listingBase}/<id>` ("/listings" for staff). */
   listingBase?: string;
+  /** Province shown while the URL has no `province` key. Choosing "Indonesia" writes `province=` so the default doesn't come back. */
+  defaultProvince?: string;
 }) {
   const touch = useIsTouch();
   const phone = useIsPhone();
@@ -113,7 +116,7 @@ export default function ListingMap({
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const urlProvince = params.get("province") ?? "";
+  const urlProvince = params.get("province") ?? defaultProvince ?? "";
   const city = params.get("city") ?? "";
   const district = city ? (params.get("district") ?? "") : "";
   const village = district ? (params.get("village") ?? "") : "";
@@ -146,13 +149,14 @@ export default function ListingMap({
       const next = new URLSearchParams(paramsRef.current.toString());
       for (const [k, v] of Object.entries(patch)) {
         if (v) next.set(k, v);
+        else if (k === "province" && defaultProvince) next.set(k, "");
         else next.delete(k);
       }
       next.delete("page");
       const qs = next.toString();
       startNav(() => router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
     },
-    [pathname, router],
+    [pathname, router, defaultProvince],
   );
 
   /* ---------- which tiles do we need? ---------- */

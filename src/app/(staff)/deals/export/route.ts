@@ -6,6 +6,7 @@ import { dealSourceLabel, dealTypeLabel, propertyTypeLabel } from "@/lib/constan
 import { formatDate } from "@/lib/format";
 import { commissionSplit } from "@/lib/commission";
 import { logActivity } from "@/lib/activity";
+import { today } from "@/lib/tz";
 
 /**
  * Spreadsheet apps run cells that start with = + - @ as formulas ("CSV injection"). Buyer names, notes and
@@ -57,7 +58,8 @@ export async function GET(req: Request) {
   data.push({ "Deal ID": `TOTAL (${totals.count} deals)`, "Final price (IDR)": totals.value, "Commission (IDR)": totals.commission } as never);
 
   const ws = XLSX.utils.json_to_sheet(data.map((row) => Object.fromEntries(Object.entries(row).map(([k, v]) => [k, safeCell(v)]))));
-  const stamp = new Date().toISOString().slice(0, 10);
+  const t = today();
+  const stamp = `${t.year}-${String(t.month).padStart(2, "0")}-${String(t.day).padStart(2, "0")}`;
   if (url.searchParams.get("format") === "csv") {
     // BOM so Excel opens UTF-8 correctly.
     const csv = "﻿" + XLSX.utils.sheet_to_csv(ws);

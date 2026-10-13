@@ -64,5 +64,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
+  // /geo/* are public boundary tiles: skip the proxy so each one doesn't cost a Supabase Auth round trip.
+  matcher: ["/((?!_next/static|_next/image|geo/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

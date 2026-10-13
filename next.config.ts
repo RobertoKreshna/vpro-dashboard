@@ -37,7 +37,11 @@ const nextConfig: NextConfig = {
   // The dev badge covers buttons in the corners on phone-sized windows (sign out, card actions).
   devIndicators: false,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Boundary tiles change only when `bun run geo:build` is re-run, so let browsers and CDNs reuse them for a day.
+      { source: "/geo/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }] },
+    ];
   },
 };
 

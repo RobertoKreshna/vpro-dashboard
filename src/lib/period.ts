@@ -1,6 +1,7 @@
 import { min } from "drizzle-orm";
 import { db } from "@/db";
 import { deals } from "@/db/schema";
+import { today } from "@/lib/tz";
 
 export type Period = "month" | "year" | "all";
 
@@ -10,11 +11,11 @@ const ymd = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}-01`;
 
 /** Reads the Month / Year / All time choice (`period`, `m`, `y`) shared by the dashboard and the Sales page. */
 export function parsePeriod(sp: SP) {
-  const now = new Date();
+  const now = today();
   const p = one(sp.period);
   const period: Period = p === "year" || p === "all" ? p : "month";
-  const year = Math.min(2100, Math.max(2000, Number(one(sp.y)) || now.getFullYear()));
-  const month = Math.min(12, Math.max(1, Number(one(sp.m)) || now.getMonth() + 1));
+  const year = Math.min(2100, Math.max(2000, Number(one(sp.y)) || now.year));
+  const month = Math.min(12, Math.max(1, Number(one(sp.m)) || now.month));
   let range: { gte?: string; lt?: string } = {};
   let label = "All time";
   if (period === "month") {
@@ -30,7 +31,7 @@ export function parsePeriod(sp: SP) {
 /** Years to offer in the period picker: from the first deal to now, plus the selected one. */
 export async function dealYears(selected: number) {
   const [{ firstDeal }] = await db.select({ firstDeal: min(deals.dealDate) }).from(deals);
-  const thisYear = new Date().getFullYear();
+  const thisYear = today().year;
   const first = firstDeal ? Number(firstDeal.slice(0, 4)) : thisYear;
   const years: number[] = [];
   for (let y = thisYear; y >= Math.min(first, thisYear); y--) years.push(y);

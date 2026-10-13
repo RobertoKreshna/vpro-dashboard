@@ -3,6 +3,7 @@ import { and, count, gte, lt, lte, max, min, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { deals, salesCodes } from "@/db/schema";
 import { shiftMonthBack } from "@/lib/trend-helpers";
+import { today } from "@/lib/tz";
 
 export type TrendBy = "total" | "payment" | "sales";
 export type Granularity = "day" | "month";
@@ -104,13 +105,13 @@ export async function getDealTrend(opts: {
 
   const trend: DealTrend = { granularity, buckets, series: ranked.map(([name, s]) => ({ name, ...s })) };
   if (prev) {
-    const now = new Date();
+    const now = today();
     trend.prev = prev;
     trend.prevKind = period === "month" ? "month" : "year";
     trend.elapsed =
       period === "month"
-        ? year === now.getFullYear() && month === now.getMonth() + 1 ? now.getDate() : buckets.length
-        : year === now.getFullYear() ? now.getMonth() + 1 : 12;
+        ? year === now.year && month === now.month ? now.day : buckets.length
+        : year === now.year ? now.month : 12;
   }
   return trend;
 }
