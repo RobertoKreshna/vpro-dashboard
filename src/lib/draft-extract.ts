@@ -20,6 +20,10 @@ export type DraftFields = {
   electricityWatts: number | null;
   facilities: string[];
   contactPhone: string | null;
+  /** Who to call, when the ad names them ("Hub: Budi 0812..."). */
+  contactName: string | null;
+  latitude: number | null;
+  longitude: number | null;
   notes: string | null;
   /** Fields the model was unsure about or had to guess. */
   uncertain: string[];

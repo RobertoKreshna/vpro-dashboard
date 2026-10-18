@@ -32,6 +32,7 @@ export function sanitizeFields(raw: Partial<Record<keyof DraftFields, unknown>>)
     if (value === null && !uncertain.includes(name)) uncertain.push(name);
   }
 
+  const hasCoords = num(raw.latitude, -11.5, 6.5) !== null && num(raw.longitude, 94.5, 141.5) !== null;
   return {
     title: str(raw.title, 200),
     listingType,
@@ -51,6 +52,10 @@ export function sanitizeFields(raw: Partial<Record<keyof DraftFields, unknown>>)
     electricityWatts: int(raw.electricityWatts, 100, 1e6),
     facilities,
     contactPhone: str(raw.contactPhone, 30),
+    contactName: str(raw.contactName, 40),
+    // Only coordinates that fall inside Indonesia are believed.
+    latitude: hasCoords ? num(raw.latitude, -11.5, 6.5) : null,
+    longitude: hasCoords ? num(raw.longitude, 94.5, 141.5) : null,
     notes: str(raw.notes, 2000),
     uncertain: [...new Set(uncertain)],
   };

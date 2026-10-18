@@ -176,3 +176,7 @@ Staff paste a WhatsApp listing into a Telegram bot; a free built-in parser (or C
 7. Drafts nobody reviews are deleted, with their photos, after 30 days (cleaned up whenever someone opens the Drafts page).
 
 Security notes: anything under `/api/telegram/` is public (it authenticates by the webhook secret), so a route added there must check its own auth. If the bot token ever leaks, revoke it in BotFather. `TELEGRAM_API_BASE` is a test-only override and is ignored in production.
+
+### Keeping the free parser honest
+
+`bun run parser:check` runs the regression suite for `src/lib/draft-rules.ts`: ~250 hand-written ads (including traps such as down payments, road "Km" markers and phone numbers), 6,000 generated ads in many writing styles, and robustness checks on hostile input. When a real ad is misread, add it to `scripts/parser-check.ts` with what a careful human would extract, fix the rule, and it stays fixed. It will never be perfect on arbitrary text; the bot lists anything it was unsure about under "Check:" and a human reviews every draft.

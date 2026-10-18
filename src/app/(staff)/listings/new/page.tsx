@@ -13,13 +13,14 @@ export const metadata = { title: "New listing" };
 
 /** Parsed draft -> form defaults. Nulls are dropped so the form's own defaults apply. */
 function prefillFrom(f: Partial<DraftFields>): Partial<Omit<ListingFormValues, "id">> {
-  const notes = [f.notes, f.contactPhone ? `Contact: ${f.contactPhone}` : null].filter(Boolean).join("\n");
+  const contact = [f.contactName, f.contactPhone].filter(Boolean).join(" ");
+  const notes = [f.notes, contact ? `Contact: ${contact}` : null].filter(Boolean).join("\n");
   const out = {
     title: f.title, listingType: f.listingType, price: f.price, rentalPeriod: f.rentalPeriod,
     propertyType: f.propertyType, address: f.address, village: f.village, district: f.district, city: f.city,
     province: f.province, postalCode: f.postalCode, landArea: f.landArea, buildingArea: f.buildingArea,
     bedrooms: f.bedrooms, bathrooms: f.bathrooms, electricityWatts: f.electricityWatts,
-    facilities: f.facilities, notes: notes || null,
+    facilities: f.facilities, latitude: f.latitude, longitude: f.longitude, notes: notes || null,
   };
   return Object.fromEntries(Object.entries(out).filter(([, v]) => v != null)) as Partial<Omit<ListingFormValues, "id">>;
 }
