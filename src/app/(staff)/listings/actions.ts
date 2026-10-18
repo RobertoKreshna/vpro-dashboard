@@ -112,6 +112,7 @@ export async function saveListing(
 
   const values = { ...v, facilities: [...new Set(v.facilities)] };
   let listingId = id;
+  let fromDraft = false;
   if (id) {
     const [before] = await db.select().from(listings).where(eq(listings.id, id));
     await db.update(listings).set(values).where(eq(listings.id, id));
@@ -124,6 +125,7 @@ export async function saveListing(
     // A draft can become exactly one listing: claim it first (atomic), so a double-click or two staff at once
     // can't create two listings or attach its photos twice.
     const draftId = str(fd, "draftId");
+    fromDraft = !!draftId;
     if (draftId && !isUuid(draftId)) return { message: "That draft link is invalid. Open it again from the Drafts page." };
     let draftPhotos: string[] = [];
     if (draftId) {
@@ -165,7 +167,8 @@ export async function saveListing(
   revalidatePath("/listings-public");
   revalidatePath("/");
   invalidateDashboard();
-  redirect(id ? `/listings/${listingId}` : `/listings/${listingId}/edit?created=1`);
+  // A listing made from a Telegram draft goes back to the Drafts queue, so the next draft is one click away.
+  redirect(id ? `/listings/${listingId}` : fromDraft ? `/drafts?saved=${listingId}` : `/listings/${listingId}/edit?created=1`);
 }
 
 /**

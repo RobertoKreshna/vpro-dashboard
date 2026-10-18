@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { listingDrafts } from "@/db/schema";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/page-header";
+import { DraftsTabs } from "@/components/drafts/drafts-tabs";
 import type { DraftFields } from "@/lib/draft-extract";
 import { PHOTO_BUCKET, photoUrl } from "@/lib/constants";
 import { DRAFT_TTL_DAYS, pruneStaleDrafts } from "@/lib/draft-cleanup";
@@ -17,7 +18,9 @@ export const dynamic = "force-dynamic";
 
 const when = new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Makassar" });
 
-export default async function DraftsPage() {
+export default async function DraftsPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
+  const { saved } = await searchParams;
+  const savedId = saved && /^LST-\d+$/.test(saved) ? saved : null;
   // Housekeeping must never break the page.
   try {
     const storage = (await createClient()).storage.from(PHOTO_BUCKET);
@@ -38,6 +41,13 @@ export default async function DraftsPage() {
         title="Listing drafts"
         description={`Messages submitted through the Telegram bot. Review, fix anything wrong, then save as a listing. Unreviewed drafts are deleted after ${DRAFT_TTL_DAYS} days.`}
       />
+      <DraftsTabs active="drafts" />
+      {savedId && (
+        <p role="status" className="mb-4 flex flex-wrap items-center gap-x-2 rounded-xl border border-emerald-300/60 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200">
+          <span className="font-semibold">Listing {savedId} created.</span>
+          <Link href={`/listings/${savedId}`} className="underline underline-offset-2">View listing</Link>
+        </p>
+      )}
       {rows.length === 0 && (
         <p className="rounded-xl border bg-card py-12 text-center text-sm text-muted-foreground">
           No drafts waiting. Paste a WhatsApp listing into the Telegram bot to create one.
@@ -68,7 +78,7 @@ export default async function DraftsPage() {
                   <form action={discardDraft.bind(null, r.id)}>
                     <Button type="submit" variant="outline"><Trash2 /> Discard</Button>
                   </form>
-                  <Link href={`/listings/new?draft=${r.id}`} className={buttonVariants()}>Review</Link>
+                  <Link href={`/drafts/${r.id}`} className={buttonVariants()}>Review</Link>
                 </div>
               </div>
               {r.photos.length > 0 && (

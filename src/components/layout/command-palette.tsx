@@ -8,11 +8,11 @@ import { globalSearch, type SearchResults } from "@/app/(staff)/search/actions";
 
 const PAGES = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/listings", label: "Listings", icon: Home },
   { href: "/drafts", label: "Drafts", icon: Inbox },
+  { href: "/telegram", label: "Telegram accounts", icon: Send },
+  { href: "/listings", label: "Listings", icon: Home },
   { href: "/deals", label: "Done Deals", icon: Handshake },
   { href: "/sales-codes", label: "Sales", icon: Users },
-  { href: "/telegram", label: "Telegram", icon: Send },
   { href: "/activity", label: "Activity", icon: History },
 ];
 const NONE: SearchResults = { listings: [], deals: [], salesCodes: [] };

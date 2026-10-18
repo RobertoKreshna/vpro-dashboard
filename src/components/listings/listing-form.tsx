@@ -57,6 +57,9 @@ export function ListingForm({
   listing,
   prefill,
   draftId,
+  cancelHref,
+  submitLabel,
+  hidePhotoNote,
   agents,
   facilityOptions,
 }: {
@@ -65,6 +68,11 @@ export function ListingForm({
   prefill?: Partial<Omit<ListingFormValues, "id">>;
   /** Marks this draft as approved once the listing is saved. */
   draftId?: string;
+  /** Where Cancel goes (default: the listings page, or the listing being edited). */
+  cancelHref?: string;
+  submitLabel?: string;
+  /** Hide the "add photos next" note, e.g. when the photos already came with a draft. */
+  hidePhotoNote?: boolean;
   agents: Agent[];
   facilityOptions: string[];
 }) {
@@ -300,7 +308,7 @@ export function ListingForm({
         </Field>
       </Section>
 
-      {!listing && (
+      {!listing && !hidePhotoNote && (
         <section className="flex items-start gap-3 rounded-xl border border-dashed bg-card p-5">
           <ImagePlus className="mt-0.5 size-5 shrink-0 text-brand-ink" />
           <div>
@@ -313,11 +321,11 @@ export function ListingForm({
       )}
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Link href={listing ? `/listings/${listing.id}` : "/listings"} className={buttonVariants({ variant: "outline", size: "lg" })}>
+        <Link href={cancelHref ?? (listing ? `/listings/${listing.id}` : "/listings")} className={buttonVariants({ variant: "outline", size: "lg" })}>
           Cancel
         </Link>
         <Button type="submit" size="lg" disabled={pending}>
-          {pending && <Loader2 className="animate-spin" />} {listing ? "Save changes" : "Create & add photos"}
+          {pending && <Loader2 className="animate-spin" />} {submitLabel ?? (listing ? "Save changes" : "Create & add photos")}
         </Button>
       </div>
     </form>

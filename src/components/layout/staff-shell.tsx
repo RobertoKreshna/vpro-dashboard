@@ -3,18 +3,21 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Handshake, History, Home, Inbox, LayoutDashboard, LogOut, Menu, Search, Send, Users, X } from "lucide-react";
+import { Handshake, History, Home, Inbox, LayoutDashboard, LogOut, Menu, Search, Users, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { cn } from "@/lib/utils";
 
-const NAV = [
+type NavItem = { href: string; label: string; icon: React.ComponentType<{ className?: string }>; also?: string[] };
+
+/** Follows the work: drafts arrive from Telegram, get reviewed into listings, then become deals, credited to sales. */
+const NAV: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  // The Telegram accounts page is a tab inside the Drafts section, so Drafts stays highlighted there too.
+  { href: "/drafts", label: "Drafts", icon: Inbox, also: ["/telegram"] },
   { href: "/listings", label: "Listings", icon: Home },
-  { href: "/drafts", label: "Drafts", icon: Inbox },
   { href: "/deals", label: "Done Deals", icon: Handshake },
   { href: "/sales-codes", label: "Sales", icon: Users },
-  { href: "/telegram", label: "Telegram", icon: Send },
   { href: "/activity", label: "Activity", icon: History },
 ];
 
@@ -55,8 +58,8 @@ export function StaffShell({
         </button>
       </div>
       <nav className="flex-1 space-y-1 p-3" aria-label="Main">
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+        {NAV.map(({ href, label, icon: Icon, also }) => {
+          const active = href === "/" ? pathname === "/" : [href, ...(also ?? [])].some((p) => pathname.startsWith(p));
           return (
             <Link
               key={href}
