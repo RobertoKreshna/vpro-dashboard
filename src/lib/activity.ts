@@ -5,7 +5,7 @@ import { activityLog } from "@/db/schema";
 type Entry = {
   actor: string | null | undefined;
   action: "created" | "updated" | "deleted" | "exported" | "login_failed";
-  entity: "listing" | "deal" | "sales_code" | "auth";
+  entity: "listing" | "deal" | "sales_code" | "auth" | "telegram_user";
   entityId: string;
   summary: string;
 };

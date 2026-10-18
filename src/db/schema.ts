@@ -252,3 +252,14 @@ export const listingDrafts = pgTable(
     uniqueIndex("listing_drafts_media_group_idx").on(t.telegramMediaGroupId),
   ],
 );
+
+/**
+ * Telegram accounts allowed to use the listing-intake bot, managed on the staff Telegram page.
+ * The numeric ID is what the bot checks; `username` is only a display label for staff.
+ */
+export const telegramUsers = pgTable("telegram_users", {
+  telegramUserId: bigint("telegram_user_id", { mode: "number" }).primaryKey(),
+  username: text("username").notNull(),
+  addedBy: text("added_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

@@ -5,6 +5,7 @@ import { listingDrafts } from "@/db/schema";
 import { extractListing, type DraftFields } from "@/lib/draft-extract";
 import { rateLimit } from "@/lib/rate-limit";
 import { siteUrl } from "@/lib/site";
+import { telegramAccess } from "@/lib/telegram-access";
 import { deletePhotosAsService, uploadPhotoAsService } from "@/lib/supabase/admin";
 import { downloadFile, reply, sniffImage } from "@/lib/telegram";
 
@@ -105,8 +106,9 @@ async function handleCommand(msg: TgMessage, text: string) {
   return reply(chatId, "I don't know that command. Send /help to see what I can do.");
 }
 
-const submitter = (from: NonNullable<TgMessage["from"]>) =>
-  from.username ? `@${from.username}` : (from.first_name ?? String(from.id));
+/** Staff see who sent a draft: the name configured on the Telegram page wins over whatever Telegram reports. */
+const submitter = (from: NonNullable<TgMessage["from"]>, label?: string | null) =>
+  label || (from.username ? `@${from.username}` : (from.first_name ?? String(from.id)));
 
 async function latestRecentDraft(chatId: number) {
   const [row] = await db
@@ -139,7 +141,7 @@ function imageOf(msg: TgMessage): { fileId: string; type: string; size?: number 
   return undefined;
 }
 
-async function handlePhoto(msg: TgMessage, caption: string | undefined, image: NonNullable<ReturnType<typeof imageOf>>) {
+async function handlePhoto(msg: TgMessage, caption: string | undefined, image: NonNullable<ReturnType<typeof imageOf>>, label: string | null) {
   const chatId = msg.chat.id;
   const from = msg.from!;
   const group = msg.media_group_id;
@@ -159,7 +161,7 @@ async function handlePhoto(msg: TgMessage, caption: string | undefined, image: N
       .insert(listingDrafts)
       .values({
         rawText: "",
-        submittedBy: submitter(from),
+        submittedBy: submitter(from, label),
         telegramChatId: chatId,
         telegramMessageId: msg.message_id,
         telegramMediaGroupId: group ?? null,
@@ -199,7 +201,7 @@ async function handlePhoto(msg: TgMessage, caption: string | undefined, image: N
   }
 }
 
-async function handleText(msg: TgMessage, raw: string) {
+async function handleText(msg: TgMessage, raw: string, label: string | null) {
   const chatId = msg.chat.id;
   // Photos were sent first and are still waiting for their text: attach the text to that draft.
   const waiting = await latestRecentDraft(chatId);
@@ -211,7 +213,7 @@ async function handleText(msg: TgMessage, raw: string) {
     .insert(listingDrafts)
     .values({
       rawText: raw,
-      submittedBy: submitter(msg.from!),
+      submittedBy: submitter(msg.from!, label),
       telegramChatId: chatId,
       telegramMessageId: msg.message_id,
     })
@@ -239,12 +241,12 @@ export async function POST(request: Request) {
     return Response.json({ ok: true });
   }
 
-  // Several staff can use the bot: list all their Telegram user IDs, comma-separated.
-  const allowed = (process.env.TELEGRAM_ALLOWED_USER_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  if (!msg.from || !allowed.includes(String(msg.from.id))) {
+  // Who may use the bot is managed on the dashboard's Telegram page (TELEGRAM_ALLOWED_USER_IDS is an optional backup list).
+  const access = msg.from ? await telegramAccess(msg.from.id) : { allowed: false, label: null };
+  if (!msg.from || !access.allowed) {
     // Strangers get at most 3 replies an hour, then silence.
     if (rateLimit(`tg-deny:${msg.from?.id ?? msg.chat.id}`, 3, 3_600_000).ok) {
-      await reply(msg.chat.id, `Not authorised. Ask an admin to add your Telegram ID: ${msg.from?.id ?? "unknown"}`);
+      await reply(msg.chat.id, `Not authorised. Ask an admin to add your Telegram ID on the dashboard's Telegram page: ${msg.from?.id ?? "unknown"}`);
     }
     return Response.json({ ok: true });
   }
@@ -264,8 +266,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    if (image) await handlePhoto(msg, text, image);
-    else await handleText(msg, text!);
+    if (image) await handlePhoto(msg, text, image, access.label);
+    else await handleText(msg, text!, access.label);
   } catch (e) {
     console.error("telegram draft failed", e);
     await reply(msg.chat.id, "❌ Couldn't process that message. Please try again.", msg.message_id);

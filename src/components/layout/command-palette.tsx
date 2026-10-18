@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Handshake, History, Home, Inbox, LayoutDashboard, Users } from "lucide-react";
+import { Handshake, History, Home, Inbox, LayoutDashboard, Send, Users } from "lucide-react";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { globalSearch, type SearchResults } from "@/app/(staff)/search/actions";
 
@@ -12,6 +12,7 @@ const PAGES = [
   { href: "/drafts", label: "Drafts", icon: Inbox },
   { href: "/deals", label: "Done Deals", icon: Handshake },
   { href: "/sales-codes", label: "Sales", icon: Users },
+  { href: "/telegram", label: "Telegram", icon: Send },
   { href: "/activity", label: "Activity", icon: History },
 ];
 const NONE: SearchResults = { listings: [], deals: [], salesCodes: [] };

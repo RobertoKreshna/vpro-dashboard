@@ -53,19 +53,26 @@ const area = (text: string, labels: string) => {
   return null;
 };
 
-/** "KT 3" / "Kamar tidur: 3" / "3 kamar tidur" (checked in that order, so "LB 90 KT 3" never reads as 90). */
+/**
+ * Room counts. Spelled-out words win over abbreviations ("2 kamar mandi" beats the "Km 10" in "Jl. Perintis Km 10"),
+ * and an abbreviation on a street line ("Jl. ... Km 10") is a road marker, never a room count.
+ */
 const count = (text: string, abbr: string, word: string) => {
-  const tries = [
-    String.raw`\b(?:${abbr})\s*[:=]?\s*(\d+)`,
-    String.raw`\b(?:${word})\s*[:=]\s*(\d+)`,
-    String.raw`(\d+)\s*(?:${abbr}|${word})\b`,
-    String.raw`\b(?:${word})\s+(\d+)`,
-  ];
-  for (const t of tries) {
-    const m = text.match(new RegExp(t, "i"));
-    if (m) return Number(m[1]);
-  }
-  return null;
+  const abbrOnStreetLine = (m: RegExpMatchArray) => {
+    const lineStart = text.lastIndexOf("\n", m.index ?? 0) + 1;
+    return /\b(?:jl|jln|jalan)\b/i.test(text.slice(lineStart, m.index ?? 0));
+  };
+  const first = (re: RegExp, skip?: (m: RegExpMatchArray) => boolean) => {
+    for (const m of text.matchAll(re)) if (!skip?.(m)) return Number(m[1]);
+    return null;
+  };
+  return (
+    first(new RegExp(String.raw`\b(?:${word})\s*[:=]\s*(\d+)`, "gi")) ??            // Kamar mandi: 2
+    first(new RegExp(String.raw`(\d+)\s*(?:${word})\b`, "gi")) ??                     // 2 kamar mandi
+    first(new RegExp(String.raw`\b(?:${abbr})\s*[:=]?\s*(\d+)`, "gi"), abbrOnStreetLine) ?? // KM 2
+    first(new RegExp(String.raw`(\d+)\s*(?:${abbr})\b`, "gi")) ??                     // 2KM
+    first(new RegExp(String.raw`\b(?:${word})\s+(\d+)`, "gi"))                        // kamar mandi 2
+  );
 };
 
 const label = (text: string, names: string) => {

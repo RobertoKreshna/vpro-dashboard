@@ -16,7 +16,7 @@ const ENTITIES = [
   { value: "deal", label: "Deals" },
   { value: "sales_code", label: "Sales codes" },
 ] as const;
-const ENTITY_LABEL: Record<string, string> = { listing: "Listing", deal: "Deal", sales_code: "Sales code", auth: "Sign-in" };
+const ENTITY_LABEL: Record<string, string> = { listing: "Listing", deal: "Deal", sales_code: "Sales code", auth: "Sign-in", telegram_user: "Telegram user" };
 const ACTION_STYLE: Record<string, string> = {
   created: "bg-emerald-100 text-emerald-900",
   updated: "bg-sky-100 text-sky-900",
@@ -30,6 +30,7 @@ function hrefFor(entity: string, id: string, action: string) {
   if (action === "deleted" || action === "exported" || action === "login_failed") return null;
   if (entity === "listing") return `/listings/${id}`;
   if (entity === "deal") return `/deals/${id}/edit`;
+  if (entity === "telegram_user") return "/telegram";
   return `/sales-codes?q=${encodeURIComponent(id)}`;
 }
 

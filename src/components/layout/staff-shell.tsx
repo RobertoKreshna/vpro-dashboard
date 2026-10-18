@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Handshake, History, Home, Inbox, LayoutDashboard, LogOut, Menu, Search, Users, X } from "lucide-react";
+import { Handshake, History, Home, Inbox, LayoutDashboard, LogOut, Menu, Search, Send, Users, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { cn } from "@/lib/utils";
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/drafts", label: "Drafts", icon: Inbox },
   { href: "/deals", label: "Done Deals", icon: Handshake },
   { href: "/sales-codes", label: "Sales", icon: Users },
+  { href: "/telegram", label: "Telegram", icon: Send },
   { href: "/activity", label: "Activity", icon: History },
 ];
 

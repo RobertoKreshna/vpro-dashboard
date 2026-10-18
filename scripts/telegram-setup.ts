@@ -23,7 +23,6 @@ if (!base || !/^https:\/\//.test(base)) fail("Usage: bun run telegram:setup http
 if (!token) fail("TELEGRAM_BOT_TOKEN is not set in .env.local");
 if (!secret) fail("TELEGRAM_WEBHOOK_SECRET is not set in .env.local");
 if (!/^[A-Za-z0-9_-]{1,256}$/.test(secret!)) fail("TELEGRAM_WEBHOOK_SECRET may only contain letters, numbers, _ and - (max 256 characters)");
-if (!process.env.TELEGRAM_ALLOWED_USER_IDS?.trim()) console.warn("! TELEGRAM_ALLOWED_USER_IDS is empty: nobody will be able to submit listings yet.");
 
 async function call(method: string, body?: object) {
   const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
