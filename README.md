@@ -162,3 +162,17 @@ public/geo/             generated boundary tiles
 ## Credits
 
 Boundaries: [cahyadsn/wilayah_boundaries](https://github.com/cahyadsn/wilayah_boundaries) (MIT) · Badan Informasi Geospasial (BIG). Maps and charts: Plotly.
+
+## Telegram listing intake
+
+Staff paste a WhatsApp listing into a Telegram bot; a free built-in parser (or Claude, if you set `ANTHROPIC_API_KEY`) turns it into a draft; a human reviews it on the **Drafts** page and saves it as a real listing.
+
+1. Create a bot with [@BotFather](https://t.me/BotFather). In BotFather run `/setjoingroups` → **Disable**, since the bot only works in private chats. Fill the `TELEGRAM_*` values in `.env.local` (see `.env.example`). `ANTHROPIC_API_KEY` is optional; if you use it, set a monthly spend limit in the Anthropic console.
+2. Run `bun run db:migrate` to create the `listing_drafts` table.
+3. Deploy (or tunnel with ngrok), then run `bun run telegram:setup https://YOUR-PUBLIC-ADDRESS`. It checks the token, registers the webhook (with the secret and `allowed_updates=["message"]`), sets the bot's command menu and description, and prints the status. Re-run it whenever the address changes (a free ngrok address changes on every restart).
+4. **Several staff can use it:** put every person's Telegram user ID in `TELEGRAM_ALLOWED_USER_IDS`, comma-separated. Someone not yet listed can message the bot and it replies with their ID to send to an admin. Drafts show who submitted them.
+5. Staff can send text, photos, or both (an album with a caption works too), as photos or as image files. Photos are stored in the `listing-photos` bucket and moved under the listing's own folder when a draft is approved. This needs `SUPABASE_SERVICE_ROLE_KEY` on the server.
+6. **Bot commands:** `/help` explains the flow, `/drafts` lists your drafts waiting for review, `/cancel` discards the draft you just sent (and its photos). Anyone not on the allowed list gets nothing but their own ID.
+7. Drafts nobody reviews are deleted, with their photos, after 30 days (cleaned up whenever someone opens the Drafts page).
+
+Security notes: anything under `/api/telegram/` is public (it authenticates by the webhook secret), so a route added there must check its own auth. If the bot token ever leaks, revoke it in BotFather. `TELEGRAM_API_BASE` is a test-only override and is ignored in production.

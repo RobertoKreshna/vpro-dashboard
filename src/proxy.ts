@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
-const PUBLIC_PREFIXES = ["/listings-public", "/login", "/geo", "/robots.txt", "/sitemap.xml"];
+const PUBLIC_PREFIXES = ["/listings-public", "/login", "/geo", "/api/telegram", "/robots.txt", "/sitemap.xml"];
 
 export async function proxy(request: NextRequest) {
   // Public pages hit the database on every load: cap requests per IP (a speed bump; see lib/rate-limit.ts).

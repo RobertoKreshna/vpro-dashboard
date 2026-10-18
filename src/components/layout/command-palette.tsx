@@ -2,13 +2,14 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Handshake, History, Home, LayoutDashboard, Users } from "lucide-react";
+import { Handshake, History, Home, Inbox, LayoutDashboard, Users } from "lucide-react";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { globalSearch, type SearchResults } from "@/app/(staff)/search/actions";
 
 const PAGES = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/listings", label: "Listings", icon: Home },
+  { href: "/drafts", label: "Drafts", icon: Inbox },
   { href: "/deals", label: "Done Deals", icon: Handshake },
   { href: "/sales-codes", label: "Sales", icon: Users },
   { href: "/activity", label: "Activity", icon: History },

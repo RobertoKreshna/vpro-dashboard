@@ -14,7 +14,8 @@
     "db:seed:more": "tsx scripts/seed-more.ts",
     "geo:build": "bun scripts/build-geo.ts",
     "staff:add": "bun scripts/add-staff.ts",
-    "staff:remove": "bun scripts/add-staff.ts"
+    "staff:remove": "bun scripts/add-staff.ts",
+    "telegram:setup": "bun scripts/telegram-setup.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

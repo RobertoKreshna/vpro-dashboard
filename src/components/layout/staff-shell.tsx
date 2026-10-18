@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Handshake, History, Home, LayoutDashboard, LogOut, Menu, Search, Users, X } from "lucide-react";
+import { Handshake, History, Home, Inbox, LayoutDashboard, LogOut, Menu, Search, Users, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CommandPalette } from "@/components/layout/command-palette";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/listings", label: "Listings", icon: Home },
+  { href: "/drafts", label: "Drafts", icon: Inbox },
   { href: "/deals", label: "Done Deals", icon: Handshake },
   { href: "/sales-codes", label: "Sales", icon: Users },
   { href: "/activity", label: "Activity", icon: History },
@@ -19,10 +20,13 @@ const NAV = [
 export function StaffShell({
   email,
   signOutAction,
+  draftCount = 0,
   children,
 }: {
   email: string;
   signOutAction: () => Promise<void>;
+  /** Telegram drafts waiting for review, shown as a badge on the Drafts item. */
+  draftCount?: number;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -66,6 +70,17 @@ export function StaffShell({
               )}
             >
               <Icon className="size-4.5" /> {label}
+              {href === "/drafts" && draftCount > 0 && (
+                <span
+                  aria-label={`${draftCount} waiting for review`}
+                  className={cn(
+                    "ml-auto rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums",
+                    active ? "bg-white/25 text-white" : "bg-primary text-white",
+                  )}
+                >
+                  {draftCount > 99 ? "99+" : draftCount}
+                </span>
+              )}
             </Link>
           );
         })}

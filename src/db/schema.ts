@@ -5,6 +5,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgSequence,
@@ -12,6 +13,7 @@ import {
   pgView,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -221,4 +223,32 @@ export const activityLog = pgTable(
     summary: text("summary").notNull(),
   },
   (t) => [index("activity_log_at_idx").on(t.at)],
+);
+
+/**
+ * Listings pasted into the Telegram bot and parsed by Claude, waiting for a human to review them.
+ * `parsed` holds the extracted fields (see src/lib/draft-extract.ts); approving one opens the normal listing form.
+ */
+export const listingDrafts = pgTable(
+  "listing_drafts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    rawText: text("raw_text").notNull(),
+    parsed: jsonb("parsed").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    status: text("status").notNull().default("pending"), // pending | approved | discarded
+    submittedBy: text("submitted_by"),
+    telegramChatId: bigint("telegram_chat_id", { mode: "number" }),
+    telegramMessageId: bigint("telegram_message_id", { mode: "number" }),
+    /** Telegram groups an album's photos under one id; used to collect them into a single draft. */
+    telegramMediaGroupId: text("telegram_media_group_id"),
+    /** Storage paths (listing-photos bucket, under drafts/<id>/) of photos sent with the message. */
+    photos: text("photos").array().notNull().default(sql`'{}'::text[]`),
+    listingId: text("listing_id").references(() => listings.id, { onDelete: "set null", onUpdate: "cascade" }),
+    ...timestamps,
+  },
+  (t) => [
+    index("listing_drafts_status_idx").on(t.status, t.createdAt),
+    uniqueIndex("listing_drafts_telegram_msg_idx").on(t.telegramChatId, t.telegramMessageId),
+    uniqueIndex("listing_drafts_media_group_idx").on(t.telegramMediaGroupId),
+  ],
 );

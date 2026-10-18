@@ -55,26 +55,33 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export function ListingForm({
   listing,
+  prefill,
+  draftId,
   agents,
   facilityOptions,
 }: {
   listing?: ListingFormValues;
+  /** Starting values for a new listing (from a reviewed draft); ignored when editing. */
+  prefill?: Partial<Omit<ListingFormValues, "id">>;
+  /** Marks this draft as approved once the listing is saved. */
+  draftId?: string;
   agents: Agent[];
   facilityOptions: string[];
 }) {
+  const init = listing ?? prefill;
   const [state, action, pending] = React.useActionState<ListingFormState, FormData>(saveListing, {});
   const err = state.errors ?? {};
-  const [type, setType] = React.useState<"sell" | "rent">(listing?.listingType ?? "sell");
+  const [type, setType] = React.useState<"sell" | "rent">(init?.listingType ?? "sell");
   const [options, setOptions] = React.useState(facilityOptions);
-  const [selected, setSelected] = React.useState<string[]>(listing?.facilities ?? []);
+  const [selected, setSelected] = React.useState<string[]>(init?.facilities ?? []);
   const [newFacility, setNewFacility] = React.useState("");
   const [adding, startAdd] = React.useTransition();
 
   // ---- Location cascade: Province -> City -> District -> Village (official boundary names) ----
-  const [province, setProvince] = React.useState(listing?.province ?? "");
-  const [city, setCity] = React.useState(listing?.city ?? "");
-  const [district, setDistrict] = React.useState(listing?.district ?? "");
-  const [village, setVillage] = React.useState(listing?.village ?? "");
+  const [province, setProvince] = React.useState(init?.province ?? "");
+  const [city, setCity] = React.useState(init?.city ?? "");
+  const [district, setDistrict] = React.useState(init?.district ?? "");
+  const [village, setVillage] = React.useState(init?.village ?? "");
   const place = usePlaceOptions({ province, city, district });
 
   React.useEffect(() => {
@@ -97,13 +104,14 @@ export function ListingForm({
       noValidate
     >
       {listing && <input type="hidden" name="id" value={listing.id} />}
+      {draftId && <input type="hidden" name="draftId" value={draftId} />}
       {selected.map((f) => (
         <input key={f} type="hidden" name="facilities" value={f} />
       ))}
 
       <Section title="Basics">
         <Field label="Title / short description" required error={err.title} className="sm:col-span-2 lg:col-span-3" htmlFor="title">
-          <Input id="title" name="title" defaultValue={listing?.title} aria-invalid={!!err.title} />
+          <Input id="title" name="title" defaultValue={init?.title} aria-invalid={!!err.title} />
         </Field>
         <Field label="Listing type" required error={err.listingType}>
           <div role="radiogroup" aria-label="Listing type" className="grid grid-cols-2 gap-1 rounded-lg border bg-muted p-1">
@@ -122,7 +130,7 @@ export function ListingForm({
           </div>
         </Field>
         <Field label="Property type" required error={err.propertyType} htmlFor="propertyType">
-          <NativeSelect id="propertyType" name="propertyType" defaultValue={listing?.propertyType ?? ""} aria-invalid={!!err.propertyType}>
+          <NativeSelect id="propertyType" name="propertyType" defaultValue={init?.propertyType ?? ""} aria-invalid={!!err.propertyType}>
             <option value="" disabled>Select…</option>
             {PROPERTY_TYPES.map((p) => (
               <option key={p.value} value={p.value}>{p.label}</option>
@@ -132,10 +140,10 @@ export function ListingForm({
         {/* Rental period sits inside the price cell so choosing Rent never moves other fields. */}
         <Field label={type === "rent" ? "Price (IDR) & period" : "Price (IDR)"} required error={err.price ?? err.rentalPeriod} htmlFor="price">
           <div className="flex gap-2">
-            <MoneyInput id="price" name="price" placeholder="1.500.000.000" defaultValue={listing?.price} aria-invalid={!!err.price} className="min-w-0 flex-1" />
+            <MoneyInput id="price" name="price" placeholder="1.500.000.000" defaultValue={init?.price} aria-invalid={!!err.price} className="min-w-0 flex-1" />
             {type === "rent" && (
               <div className="w-36 shrink-0">
-                <NativeSelect aria-label="Rental period" name="rentalPeriod" defaultValue={listing?.rentalPeriod ?? "month"} aria-invalid={!!err.rentalPeriod}>
+                <NativeSelect aria-label="Rental period" name="rentalPeriod" defaultValue={init?.rentalPeriod ?? "month"} aria-invalid={!!err.rentalPeriod}>
                   {RENTAL_PERIODS.map((p) => (
                     <option key={p.value} value={p.value}>{p.label}</option>
                   ))}
@@ -148,7 +156,7 @@ export function ListingForm({
 
       <Section title="Location">
         <Field label="Address" required error={err.address} className="sm:col-span-2 lg:col-span-3" htmlFor="address">
-          <Input id="address" name="address" placeholder="Street, number, RT/RW" defaultValue={listing?.address} aria-invalid={!!err.address} />
+          <Input id="address" name="address" placeholder="Street, number, RT/RW" defaultValue={init?.address} aria-invalid={!!err.address} />
         </Field>
         <div className="grid gap-4 sm:col-span-2 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-4">
           <PlacePicker
@@ -176,7 +184,7 @@ export function ListingForm({
           />
         </div>
         <Field label="Postal code" error={err.postalCode} htmlFor="postalCode">
-          <Input id="postalCode" name="postalCode" inputMode="numeric" maxLength={5} defaultValue={listing?.postalCode ?? ""} aria-invalid={!!err.postalCode} />
+          <Input id="postalCode" name="postalCode" inputMode="numeric" maxLength={5} defaultValue={init?.postalCode ?? ""} aria-invalid={!!err.postalCode} />
         </Field>
         <Field
           label="Map coordinates"
@@ -189,7 +197,7 @@ export function ListingForm({
             id="coordinates"
             name="coordinates"
             placeholder="-6.2088, 106.8456"
-            defaultValue={listing?.latitude != null && listing?.longitude != null ? `${listing.latitude}, ${listing.longitude}` : ""}
+            defaultValue={init?.latitude != null && init?.longitude != null ? `${init.latitude}, ${init.longitude}` : ""}
             aria-invalid={!!err.coordinates}
           />
         </Field>
@@ -197,19 +205,19 @@ export function ListingForm({
 
       <Section title="Specifications">
         <Field label="Land area (m²)" error={err.landArea} htmlFor="landArea">
-          <Input id="landArea" name="landArea" inputMode="decimal" defaultValue={listing?.landArea ?? ""} />
+          <Input id="landArea" name="landArea" inputMode="decimal" defaultValue={init?.landArea ?? ""} />
         </Field>
         <Field label="Building area (m²)" error={err.buildingArea} htmlFor="buildingArea">
-          <Input id="buildingArea" name="buildingArea" inputMode="decimal" defaultValue={listing?.buildingArea ?? ""} />
+          <Input id="buildingArea" name="buildingArea" inputMode="decimal" defaultValue={init?.buildingArea ?? ""} />
         </Field>
         <Field label="Electricity (watts)" error={err.electricityWatts} htmlFor="electricityWatts">
-          <Input id="electricityWatts" name="electricityWatts" inputMode="numeric" placeholder="2200" defaultValue={listing?.electricityWatts ?? ""} />
+          <Input id="electricityWatts" name="electricityWatts" inputMode="numeric" placeholder="2200" defaultValue={init?.electricityWatts ?? ""} />
         </Field>
         <Field label="Bedrooms" error={err.bedrooms} htmlFor="bedrooms">
-          <Input id="bedrooms" name="bedrooms" type="number" min={0} defaultValue={listing?.bedrooms ?? 0} />
+          <Input id="bedrooms" name="bedrooms" type="number" min={0} defaultValue={init?.bedrooms ?? 0} />
         </Field>
         <Field label="Bathrooms" error={err.bathrooms} htmlFor="bathrooms">
-          <Input id="bathrooms" name="bathrooms" type="number" min={0} defaultValue={listing?.bathrooms ?? 0} />
+          <Input id="bathrooms" name="bathrooms" type="number" min={0} defaultValue={init?.bathrooms ?? 0} />
         </Field>
       </Section>
 
@@ -269,7 +277,7 @@ export function ListingForm({
 
       <Section title="Agent & status">
         <Field label="Listed by (sales code)" required error={err.salesCode} htmlFor="salesCode">
-          <NativeSelect id="salesCode" name="salesCode" defaultValue={listing?.salesCode ?? ""} aria-invalid={!!err.salesCode}>
+          <NativeSelect id="salesCode" name="salesCode" defaultValue={init?.salesCode ?? ""} aria-invalid={!!err.salesCode}>
             <option value="" disabled>Select agent…</option>
             {agents.map((a) => (
               <option key={a.code} value={a.code}>
@@ -288,7 +296,7 @@ export function ListingForm({
           </Field>
         )}
         <Field label="Internal notes" hint="Never shown publicly." className="sm:col-span-2 lg:col-span-3" htmlFor="notes">
-          <Textarea id="notes" name="notes" rows={3} defaultValue={listing?.notes ?? ""} />
+          <Textarea id="notes" name="notes" rows={3} defaultValue={init?.notes ?? ""} />
         </Field>
       </Section>
 

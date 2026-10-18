@@ -6,11 +6,11 @@ import { invalidateDashboard } from "@/lib/dashboard-cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
-import { facilities, listingPhotos, listings, salesCodes } from "@/db/schema";
+import { facilities, listingDrafts, listingPhotos, listings, salesCodes } from "@/db/schema";
 import { changedKeys, logActivity } from "@/lib/activity";
 import { requireUser } from "@/lib/auth";
 import { PHOTO_BUCKET } from "@/lib/constants";
-import { decimal, integer, money, optStr, str, zodErrors } from "@/lib/form-utils";
+import { decimal, integer, isUuid, money, optStr, str, zodErrors } from "@/lib/form-utils";
 import { createClient } from "@/lib/supabase/server";
 
 export type ListingFormState = { errors?: Record<string, string>; message?: string };
@@ -121,15 +121,73 @@ export async function saveListing(
       summary: `${v.title}${changed.length ? ` · changed ${changed.join(", ")}` : ""}`,
     });
   } else {
-    const [row] = await db.insert(listings).values({ ...values, status: "available" }).returning({ id: listings.id });
+    // A draft can become exactly one listing: claim it first (atomic), so a double-click or two staff at once
+    // can't create two listings or attach its photos twice.
+    const draftId = str(fd, "draftId");
+    if (draftId && !isUuid(draftId)) return { message: "That draft link is invalid. Open it again from the Drafts page." };
+    let draftPhotos: string[] = [];
+    if (draftId) {
+      const [claimed] = await db
+        .update(listingDrafts)
+        .set({ status: "approved" })
+        .where(and(eq(listingDrafts.id, draftId), eq(listingDrafts.status, "pending")))
+        .returning({ photos: listingDrafts.photos });
+      if (!claimed) return { message: "This draft was already saved as a listing, or discarded. Open the Drafts page." };
+      draftPhotos = claimed.photos;
+    }
+    let row: { id: string };
+    try {
+      row = await db.transaction(async (tx) => {
+        const [created] = await tx.insert(listings).values({ ...values, status: "available" }).returning({ id: listings.id });
+        if (draftId) {
+          await tx.update(listingDrafts).set({ listingId: created.id }).where(eq(listingDrafts.id, draftId));
+          if (draftPhotos.length) {
+            await tx.insert(listingPhotos).values(
+              draftPhotos.map((path, position) => ({ listingId: created.id, path, position, isCover: position === 0 })),
+            );
+          }
+        }
+        return created;
+      });
+    } catch (e) {
+      // Let the reviewer try again instead of losing the draft.
+      if (draftId) await db.update(listingDrafts).set({ status: "pending", listingId: null }).where(eq(listingDrafts.id, draftId));
+      throw e;
+    }
     listingId = row.id;
-    await logActivity({ actor: user.email, action: "created", entity: "listing", entityId: listingId, summary: `${v.title} · ${v.city}` });
+    if (draftId) {
+      await moveDraftPhotos(listingId, draftPhotos);
+      revalidatePath("/drafts");
+    }
+    await logActivity({ actor: user.email, action: "created", entity: "listing", entityId: listingId, summary: `${v.title} · ${v.city}${draftId ? " · from Telegram draft" : ""}` });
   }
   revalidatePath("/listings");
   revalidatePath("/listings-public");
   revalidatePath("/");
   invalidateDashboard();
   redirect(id ? `/listings/${listingId}` : `/listings/${listingId}/edit?created=1`);
+}
+
+/**
+ * Telegram photos arrive under drafts/<draft-id>/. Once the listing exists, file them under <listing-id>/ like
+ * every other photo. A photo that fails to move simply keeps working from its draft path.
+ */
+async function moveDraftPhotos(listingId: string, paths: string[]) {
+  if (!paths.length) return;
+  const storage = (await createClient()).storage.from(PHOTO_BUCKET);
+  await Promise.all(
+    paths.map(async (from) => {
+      const to = `${listingId}/${from.split("/").pop()}`;
+      const { error } = await storage.move(from, to);
+      if (error) return console.error(`moving ${from} failed`, error.message);
+      try {
+        await db.update(listingPhotos).set({ path: to }).where(and(eq(listingPhotos.listingId, listingId), eq(listingPhotos.path, from)));
+      } catch (e) {
+        console.error(`re-pointing ${from} failed, moving it back`, e);
+        await storage.move(to, from);
+      }
+    }),
+  );
 }
 
 export async function deleteListing(id: string): Promise<{ error?: string }> {
