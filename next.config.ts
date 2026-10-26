@@ -36,6 +36,8 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // The dev badge covers buttons in the corners on phone-sized windows (sign out, card actions).
   devIndicators: false,
+  // The listing import uploads an Excel file straight to a server action; the default 1MB limit is too small for it.
+  experimental: { serverActions: { bodySizeLimit: "3mb" } },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

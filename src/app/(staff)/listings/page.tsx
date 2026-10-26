@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Pencil, Plus } from "lucide-react";
+import { FileSpreadsheet, Pencil, Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader } from "@/components/common/page-header";
@@ -38,9 +38,14 @@ export default async function ListingsPage({
         title="Listings"
         description="Sold and rented listings are hidden by default — use the status filter to see them."
         actions={
-          <Link href="/listings/new" className={buttonVariants({ size: "lg" })}>
-            <Plus /> New listing
-          </Link>
+          <>
+            <Link href="/listings/import" className={buttonVariants({ size: "lg", variant: "outline" })}>
+              <FileSpreadsheet /> Import
+            </Link>
+            <Link href="/listings/new" className={buttonVariants({ size: "lg" })}>
+              <Plus /> New listing
+            </Link>
+          </>
         }
       />
       <div className="space-y-4">
